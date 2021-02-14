@@ -1,0 +1,63 @@
+cd notes
+
+Building Smaller Images with Mutli-Stage Builds
+
+cat Dockerfile
+
+
+cat Dockerfile
+FROM python:3
+ENV PYBASE /pybase
+ENV PYTHONUSERBASE $PYBASE
+ENV PATH $PYBASE/bin:$PATH
+
+RUN pip install pipenv
+WORKDIR /tmp
+COPY Pipfile .
+RUN pipenv lock
+RUN PIP_USER=1 PIP_IGNORE_INSTALLED=1 pipenv install -d --system --ignore-pipfile
+
+COPY . /app/notes
+WORKDIR /app/notes
+EXPOSE 80
+CMD [ "flask", "run", "--port=80", "--host=0.0.0.0" ]
+
+
+
+export showlaers='{{ range .RootFS.Layers }}{{ printLn }}{{end}}'
+    5  export showSize='{{ .Size }}'
+    6  docker inspect -f ""$showLayers notesapp:default
+    7  docker inspect -f "$showLayers" notesapp:default
+    8  docker inspect -f "$showLayers" notesapp:default | wc -l
+    9  export showlayers='{{ range .RootFS.Layers }}{{ printLn }}{{end}}'
+   10  docker inspect -f "$showLayers" notesapp:default | wc -l
+   11  docker inspect -f "$showSize" notesapp:default | numfmt --to=iec
+   
+   
+FROM python:3 AS base
+ENV PYBASE /pybase
+ENV PYTHONUSERBASE $PYBASE
+ENV PATH $PYBASE/bin:$PATH
+
+FROM base AS builder
+RUN pip install pipenv
+WORKDIR /tmp
+COPY Pipfile .
+RUN pipenv lock
+RUN PIP_USER=1 PIP_IGNORE_INSTALLED=1 pipenv install -d --system --ignore-pipfile
+
+FROM base
+COPY --from=builder /pybase /pybase
+COPY . /app/notes
+WORKDIR /app/notes
+EXPOSE 80
+CMD [ "flask", "run", "--port=80", "--host=0.0.0.0" ]
+
+vim Dockerfile
+   14  docker build -t notesapp:multistage .
+   15  docker inspect -f "$showLayers" notesapp:multistage
+   16  docker inspect -f "$showLayers" notesapp:multistage | wc -l
+   17  docker inspect -f "$showSize" notesapp:multistage | numfmt --to=iec
+   18  docker inspect -f "$showSize" notesapp:default | numfmt --to=iec
+   
+  
